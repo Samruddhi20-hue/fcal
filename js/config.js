@@ -6,8 +6,8 @@
  * Leave the placeholders as-is to run the app in local demo mode.
  */
 window.APP_CONFIG = {
-  SUPABASE_URL: 'https://YOUR_PROJECT_ID.supabase.co',
-  SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+  SUPABASE_URL: 'https://rxrftaidvenlnjulnha.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_l77f7uzFiQ0FKlAFm4EFNw_ruX85-Dm',
   TEAM_MEMBERS: [
     { id: 'member-1', name: 'Sam', color: '#6c63df' },
     { id: 'member-2', name: 'Khushi', color: '#1d9b83' },
