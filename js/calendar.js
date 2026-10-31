@@ -81,6 +81,10 @@
         window.TeamSpaceCalendarSelectedDate = selected;
         render();
         renderSelected();
+        // Bring the selected-date details into view immediately after a day is clicked.
+        window.requestAnimationFrame(() => {
+          $('selectedDateEntries')?.closest('.panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
       };
       cell.addEventListener('click', choose);
       cell.addEventListener('keydown', e => {
@@ -203,7 +207,11 @@
       const d = dateObj(dateParam);
       current = new Date(d.getFullYear(), d.getMonth(), 1);
     }
-    load();
+    load().then(() => {
+      if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+        window.requestAnimationFrame(() => $('selectedDateEntries')?.closest('.panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      }
+    });
     // Refresh shared data when teammates make changes from another device.
     if (TeamSpace.isRemote) {
       window.setInterval(() => {

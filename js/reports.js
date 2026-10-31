@@ -1,8 +1,116 @@
-(function(){
-const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0'),iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,dateObj=s=>new Date(`${s}T12:00:00`),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let data={leaves:[],tasks:[]};const monthInput=$('reportMonth');function toast(s){window.TeamSpaceUI?.toast(s)}function month(){return monthInput.value||iso(new Date()).slice(0,7)}function monthBounds(m){const [y,mo]=m.split('-').map(Number);return {start:`${m}-01`,end:iso(new Date(y,mo,0))}}
-function leaveDays(leave,m){const b=monthBounds(m),start=leave.start_date>b.start?leave.start_date:b.start,end=leave.end_date<b.end?leave.end_date:b.end;if(start>end)return 0;const a=dateObj(start),z=dateObj(end),count=Math.round((z-a)/86400000)+1;return leave.leave_type==='half_day'?0.5:count;}
-function selectedLeaves(){const m=month(),b=monthBounds(m);return data.leaves.filter(l=>l.start_date<=b.end&&l.end_date>=b.start)}function selectedTasks(){const m=month(),b=monthBounds(m);return data.tasks.filter(t=>t.due_date>=b.start&&t.due_date<=b.end)}function csvCell(v){const s=String(v??'');return /[",\n\r]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}function download(name,rows){const csv='\uFEFF'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Monthly report downloaded.');}
-function totals(m,leaves){return TeamSpace.members.map(member=>{const mine=leaves.filter(l=>String(l.member_id)===String(member.id));return {member,requests:mine.length,days:mine.reduce((sum,l)=>sum+leaveDays(l,m),0),leaves:mine}})}
-function render(){const m=month(),leaves=selectedLeaves(),tasks=selectedTasks(),byMember=totals(m,leaves);$('totalLeaveDays').textContent=byMember.reduce((s,x)=>s+x.days,0).toLocaleString('en-IN',{maximumFractionDigits:1});$('totalLeaveRequests').textContent=leaves.length;$('totalTasks').textContent=tasks.length;$('completedTasks').textContent=tasks.filter(t=>t.status==='done').length;const type=$('reportType').value;let head='',body='',foot='';if(type==='complete'||type==='leave'){$('reportHeading').textContent=type==='complete'?'Complete monthly leave report — all 8 members':'Leave by team member';head='<tr><th>Team member</th><th>Leave requests</th><th>Leave days</th></tr>';body=byMember.map(x=>`<tr><td>${esc(x.member.name)}</td><td>${x.requests}</td><td>${x.days.toLocaleString('en-IN',{maximumFractionDigits:1})}</td></tr>`).join('');foot=`<tr><td>Total</td><td>${leaves.length}</td><td>${byMember.reduce((s,x)=>s+x.days,0).toLocaleString('en-IN',{maximumFractionDigits:1})}</td></tr>`;if(type==='complete')body+=`<tr><td colspan="3" class="report-section-row">Detailed leave entries for ${esc(m)}</td></tr>`+(leaves.slice().sort((a,b)=>a.start_date.localeCompare(b.start_date)).map(l=>`<tr><td>${esc(TeamSpace.memberById(l.member_id).name)}</td><td>${esc(l.start_date)} → ${esc(l.end_date)}</td><td>${leaveDays(l,m)} day(s) · ${esc(l.leave_type||'full_day').replace('_',' ')}<br>${esc(l.title)}</td></tr>`).join('')||'<tr><td colspan="3">No leave entries this month.</td></tr>');}else if(type==='detailed'){$('reportHeading').textContent='Detailed leave entries';head='<tr><th>Team member</th><th>From</th><th>To</th><th>Leave type</th><th>Days this month</th><th>Reason / title</th></tr>';body=leaves.slice().sort((a,b)=>a.start_date.localeCompare(b.start_date)).map(l=>`<tr><td>${esc(TeamSpace.memberById(l.member_id).name)}</td><td>${esc(l.start_date)}</td><td>${esc(l.end_date)}</td><td>${esc((l.leave_type||'full_day').replace('_',' '))}</td><td>${leaveDays(l,m)}</td><td>${esc(l.title)}</td></tr>`).join('');foot=`<tr><td colspan="4">Total leave days in ${esc(m)}</td><td>${leaves.reduce((s,l)=>s+leaveDays(l,m),0).toLocaleString('en-IN',{maximumFractionDigits:1})}</td><td></td></tr>`;}else{$('reportHeading').textContent='Tasks due by team member';head='<tr><th>Team member</th><th>Tasks due</th><th>Completed</th><th>Open / in progress</th></tr>';body=TeamSpace.members.map(mem=>{const mine=tasks.filter(t=>String(t.member_id)===String(mem.id));return `<tr><td>${esc(mem.name)}</td><td>${mine.length}</td><td>${mine.filter(t=>t.status==='done').length}</td><td>${mine.filter(t=>t.status!=='done').length}</td></tr>`}).join('');foot=`<tr><td>Total</td><td>${tasks.length}</td><td>${tasks.filter(t=>t.status==='done').length}</td><td>${tasks.filter(t=>t.status!=='done').length}</td></tr>`;}$('reportTableHead').innerHTML=head;$('reportTableBody').innerHTML=body||`<tr><td colspan="6" class="empty-state">No entries for this report.</td></tr>`;$('reportTableFoot').innerHTML=foot;}
-function exportReport(){const m=month(),type=$('reportType').value,leaves=selectedLeaves(),tasks=selectedTasks(),byMember=totals(m,leaves);if(type==='complete'){const rows=[['TEAM LEAVE CALENDAR — COMPLETE MONTHLY REPORT'],['Month',m],['Generated on',iso(new Date())],[],['SUMMARY BY TEAM MEMBER'],['Team member','Leave requests overlapping month','Leave days counted in month']];byMember.forEach(x=>rows.push([x.member.name,x.requests,x.days]));rows.push(['TOTAL',leaves.length,leaves.reduce((s,l)=>s+leaveDays(l,m),0)],[],['DETAILED LEAVE ENTRIES'],['Team member','Start date','End date','Leave type','Days counted in selected month','Title / reason','Notes']);leaves.slice().sort((a,b)=>a.start_date.localeCompare(b.start_date)).forEach(l=>rows.push([TeamSpace.memberById(l.member_id).name,l.start_date,l.end_date,l.leave_type||'full_day',leaveDays(l,m),l.title,l.notes||'']));if(!leaves.length)rows.push(['No leave entries for this month']);rows.push([],['Note','Leave crossing month boundaries is counted only for dates within the selected month. Half-day leave counts as 0.5 day.']);download(`team-leave-complete-report-${m}.csv`,rows);}else if(type==='leave'){const rows=[['Month',m],[],['Team member','Leave requests','Leave days']];byMember.forEach(x=>rows.push([x.member.name,x.requests,x.days]));rows.push(['Total',leaves.length,leaves.reduce((s,l)=>s+leaveDays(l,m),0)]);download(`team-leave-summary-${m}.csv`,rows);}else if(type==='detailed'){const rows=[['Month',m],[],['Team member','Start date','End date','Leave type','Days in month','Title / reason','Notes']];leaves.forEach(l=>rows.push([TeamSpace.memberById(l.member_id).name,l.start_date,l.end_date,l.leave_type||'full_day',leaveDays(l,m),l.title,l.notes||'']));download(`team-leave-details-${m}.csv`,rows);}else{const rows=[['Month',m],[],['Team member','Task','Due date','Status','Notes']];tasks.forEach(t=>rows.push([TeamSpace.memberById(t.member_id).name,t.title,t.due_date,t.status||'open',t.notes||'']));download(`team-tasks-${m}.csv`,rows);}}
-async function load(){try{data=await TeamSpace.getAll();render()}catch(e){toast(`Could not load report: ${e.message}`)}}document.addEventListener('DOMContentLoaded',()=>{monthInput.value=iso(new Date()).slice(0,7);monthInput.addEventListener('change',render);$('reportType').addEventListener('change',render);$('downloadReport').addEventListener('click',exportReport);load()});})();
+(function () {
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, '0');
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const dateObj = s => new Date(`${s}T12:00:00`);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let data = { leaves: [], tasks: [] };
+  let selectedMember = 'all';
+  const monthInput = $('reportMonth');
+
+  function toast(message) { window.TeamSpaceUI?.toast(message); }
+  function month() { return monthInput.value || iso(new Date()).slice(0, 7); }
+  function monthBounds(m) {
+    const [y, mo] = m.split('-').map(Number);
+    return { start: `${m}-01`, end: iso(new Date(y, mo, 0)) };
+  }
+  function leaveDays(leave, m) {
+    const b = monthBounds(m);
+    const start = leave.start_date > b.start ? leave.start_date : b.start;
+    const end = leave.end_date < b.end ? leave.end_date : b.end;
+    if (start > end) return 0;
+    const count = Math.round((dateObj(end) - dateObj(start)) / 86400000) + 1;
+    return leave.leave_type === 'half_day' ? count * 0.5 : count;
+  }
+  function selectedLeaves() {
+    const b = monthBounds(month());
+    return data.leaves
+      .filter(l => l.start_date <= b.end && l.end_date >= b.start)
+      .filter(l => selectedMember === 'all' || String(l.member_id) === String(selectedMember))
+      .sort((a, b) => a.start_date.localeCompare(b.start_date) || a.end_date.localeCompare(b.end_date));
+  }
+  function csvCell(value) {
+    const s = String(value ?? '');
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+  function download() {
+    const m = month();
+    const leaves = selectedLeaves();
+    const rows = [
+      ['TEAM LEAVE CALENDAR — DETAILED LEAVE ENTRIES'],
+      ['Month', m],
+      ['Team member', selectedMember === 'all' ? 'All members' : TeamSpace.memberById(selectedMember).name],
+      [],
+      ['Team member', 'Start date', 'End date', 'Leave type', 'Days in selected month', 'Title / reason', 'Notes']
+    ];
+    leaves.forEach(l => rows.push([
+      TeamSpace.memberById(l.member_id).name, l.start_date, l.end_date,
+      l.leave_type || 'full_day', leaveDays(l, m), l.title || '', l.notes || ''
+    ]));
+    if (!leaves.length) rows.push(['No leave entries for this selection']);
+    const csv = '\uFEFF' + rows.map(row => row.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `team-leave-details-${m}${selectedMember === 'all' ? '' : '-' + TeamSpace.memberById(selectedMember).name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    toast('Detailed leave report downloaded.');
+  }
+  function renderFilters() {
+    const el = $('memberReportFilters');
+    const members = [{ id: 'all', name: 'All members' }, ...TeamSpace.members];
+    el.innerHTML = members.map(m => `
+      <button type="button" class="member-report-chip ${String(selectedMember) === String(m.id) ? 'active' : ''}"
+        data-member-filter="${esc(m.id)}" aria-pressed="${String(selectedMember) === String(m.id)}">${esc(m.name)}</button>
+    `).join('');
+    el.querySelectorAll('[data-member-filter]').forEach(button => button.addEventListener('click', () => {
+      selectedMember = button.dataset.memberFilter;
+      render();
+    }));
+  }
+  function render() {
+    const m = month();
+    const leaves = selectedLeaves();
+    const memberLabel = selectedMember === 'all' ? 'all team members' : TeamSpace.memberById(selectedMember).name;
+    $('reportDescription').textContent = `${leaves.length} leave ${leaves.length === 1 ? 'entry' : 'entries'} for ${memberLabel} in ${m}. Click a name to filter the report.`;
+    renderFilters();
+    const body = $('reportTableBody');
+    if (!leaves.length) {
+      body.innerHTML = '<tr><td colspan="7" class="empty-state">No leave entries for this selection and month.</td></tr>';
+      $('reportTableFoot').innerHTML = '';
+      return;
+    }
+    body.innerHTML = leaves.map(l => {
+      const member = TeamSpace.memberById(l.member_id);
+      return `<tr>
+        <td><button type="button" class="report-member-link" data-member-filter="${esc(member.id)}">${esc(member.name)}</button></td>
+        <td>${esc(l.start_date)}</td><td>${esc(l.end_date)}</td>
+        <td>${esc((l.leave_type || 'full_day').replaceAll('_', ' '))}</td>
+        <td>${leaveDays(l, m).toLocaleString('en-IN', { maximumFractionDigits: 1 })}</td>
+        <td>${esc(l.title || '')}</td><td>${esc(l.notes || '—')}</td>
+      </tr>`;
+    }).join('');
+    const total = leaves.reduce((sum, l) => sum + leaveDays(l, m), 0);
+    $('reportTableFoot').innerHTML = `<tr><td colspan="4">Total leave days</td><td>${total.toLocaleString('en-IN', { maximumFractionDigits: 1 })}</td><td colspan="2"></td></tr>`;
+    body.querySelectorAll('[data-member-filter]').forEach(button => button.addEventListener('click', () => {
+      selectedMember = button.dataset.memberFilter;
+      render();
+      $('detailedReportPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  }
+  async function load() {
+    try { data = await TeamSpace.getAll(); render(); }
+    catch (error) { toast(`Could not load report: ${error.message}`); }
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    monthInput.value = iso(new Date()).slice(0, 7);
+    monthInput.addEventListener('change', render);
+    $('downloadReport').addEventListener('click', download);
+    load();
+    if (TeamSpace.isRemote) {
+      window.setInterval(() => { if (!document.hidden) load(); }, 20000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+    }
+  });
+})();

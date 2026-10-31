@@ -115,3 +115,12 @@
   .selected-entry { gap: 8px; }
   .selected-entry .btn-danger { padding: 7px 8px; font-size: 10px; }
 }
+
+/* Simplified monthly leave report and member filters */
+.member-report-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.member-report-chip{border:1px solid #e5e7ef;background:#fff;color:#657087;border-radius:999px;padding:8px 13px;font:600 11px 'DM Sans',sans-serif;cursor:pointer}
+.member-report-chip:hover,.member-report-chip.active{background:#f0efff;border-color:#c9c3ff;color:var(--primary)}
+.report-member-link{border:0;background:transparent;padding:0;color:var(--primary);font:700 12px 'DM Sans',sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.report-member-link:hover{color:var(--primary-dark)}
+#detailedReportPanel{scroll-margin-top:18px}
+@media(max-width:700px){.member-report-chip{padding:7px 10px;font-size:10px}}
