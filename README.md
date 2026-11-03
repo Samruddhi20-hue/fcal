@@ -3,26 +3,26 @@
 > **Shared-storage warning:** If the sidebar shows **DEMO MODE · NOT SHARED**, the app is saving entries only in the current browser. Other phones cannot see them until you create a Supabase project, add its URL and publishable/anon key in `js/config.js`, and apply the database schema and access policies. Do not enter real leave details while in demo mode. The current no-login public policies in the prototype are not appropriate for private team records; replace them with authenticated member-only policies before using real data.
 
 
-A static web app for an eight-person team to coordinate leave and tasks. It includes a monthly calendar, overview dashboard, task status tracking, and CSV reports that open in Excel or Google Sheets.
+A static web app for an eight-person team to coordinate leave and tasks. It includes a monthly calendar, task status tracking, and detailed monthly leave reports with CSV downloads.
 
 ## Features
 
 - Monthly calendar with color-coded team members
 - Add leave with start/end dates, leave type and notes
 - Add tasks with a due date and status
-- Mark tasks complete from the dashboard
-- Complete monthly report for all eight members, detailed leave export, and task report
+- Mark tasks complete from the team calendar
+- Detailed monthly leave entries with member filters and CSV export
 - Indian national holidays and major festival reference dates for 2026–2027
 - Larger responsive monthly calendar with a per-date count of unique team members on leave
 - Click any date to see exactly who is away, leave types, date ranges, notes, and tasks
 - Delete leave/task entries with a confirmation prompt
-- Overview and calendar refresh shared Supabase data periodically when another teammate saves from a different device
+- The calendar refreshes shared Supabase data periodically when another teammate saves from a different device
 - Supabase database integration for shared data across devices
 - Local demo mode before Supabase is configured
 
 ## Project files
 
-- `index.html` — overview dashboard
+- `index.html` — redirects the site root to the team calendar (no Overview dashboard)
 - `calendar.html` — monthly calendar
 - `reports.html` — monthly reports and CSV downloads
 - `css/style.css` — styles
@@ -43,7 +43,7 @@ The simplest way is to use VS Code and its Live Server extension:
 
 1. Open this folder in VS Code.
 2. Install the **Live Server** extension if needed.
-3. Right-click `index.html` and choose **Open with Live Server**.
+3. Right-click `calendar.html` and choose **Open with Live Server**.
 4. The app works in local demo mode without Supabase. Demo data is saved in the current browser's local storage and is not shared across devices.
 
 You can also run a local static server from this directory:
